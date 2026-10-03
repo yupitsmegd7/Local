@@ -1,7 +1,8 @@
 import {extension,mimeTypes} from './catalog';
+import {withPdf} from './pdf-document';
 const check=signal=>{if(signal.aborted)throw new DOMException('Conversion cancelled.','AbortError');};
 const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
-export async function convertFile(file,kind,target,{signal,onStatus,quality='balanced'}){
+export async function convertFile(file,kind,target,{signal,onStatus,quality='balanced',documentMode='appearance'}){
  check(signal);
  if(kind==='audio'||kind==='video'){
   const {convertMedia}=await import('./media');
@@ -10,25 +11,28 @@ export async function convertFile(file,kind,target,{signal,onStatus,quality='bal
  if(kind==='images') return convertImage(file,target,{signal,onStatus,quality});
  onStatus('Reading your document…');
  const ext=extension(file);let content='';
+ // Same-format downloads retain every original byte and embedded asset.
+ if(ext===target)return file.slice(0,file.size,mimeTypes[target]);
+ if(ext==='docx'&&target==='pdf'){
+  const {docxToVisualPdf}=await import('./document-layout');
+  return docxToVisualPdf(file,{signal,onStatus});
+ }
+ if(ext==='pdf'&&target==='docx'&&documentMode!=='editable'){
+  const {pdfToVisualDocx}=await import('./document-layout');
+  return pdfToVisualDocx(file,{signal,onStatus});
+ }
  if(ext==='txt'||ext==='md') content=await file.text();
  else if(ext==='docx'){
   const {default:mammoth}=await import('mammoth/mammoth.browser');
   content=(await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()})).value;
  }else if(ext==='pdf'){
-  const pdfjs=await import('pdfjs-dist');
-  const {default:workerUrl}=await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
-  pdfjs.GlobalWorkerOptions.workerSrc=workerUrl;
-  const task=pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),cMapUrl:'/pdf/cmaps/',cMapPacked:true,standardFontDataUrl:'/pdf/standard_fonts/',wasmUrl:'/pdf/wasm/',isEvalSupported:false});
-  const cancel=()=>{void task.destroy().catch(()=>{});};signal.addEventListener('abort',cancel,{once:true});
-  try {
-   const pdf=await task.promise;
-   if(pdf.numPages>200) throw new Error('This PDF has more than 200 pages. Please split it into a smaller document first.');
+  await withPdf(file,{signal},async pdf=>{
    for(let n=1;n<=pdf.numPages;n++){
     check(signal);onStatus(`Reading page ${n} of ${pdf.numPages}…`);
     const page=await pdf.getPage(n),text=await page.getTextContent();
     content+=text.items.map(item=>item.str+(item.hasEOL?'\n':' ')).join('')+'\n\n';page.cleanup();
    }
-  } finally {signal.removeEventListener('abort',cancel);await task.destroy();}
+  });
   if(!content.trim())throw new Error('This PDF has no readable text. Scanned pages need OCR. Export a page as an image and use Tools → Image to text.');
  }
  check(signal);

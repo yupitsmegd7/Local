@@ -1,0 +1,21 @@
+// Font fallbacks used only by document rendering, including real bold/italic faces.
+import '@fontsource/carlito/latin-400.css';
+import '@fontsource/carlito/latin-700.css';
+import '@fontsource/carlito/latin-400-italic.css';
+import '@fontsource/carlito/latin-700-italic.css';
+import '@fontsource/caladea/latin-400.css';
+import '@fontsource/caladea/latin-700.css';
+import '@fontsource/caladea/latin-400-italic.css';
+import '@fontsource/caladea/latin-700-italic.css';
+import '@fontsource/arimo/latin-400.css';
+import '@fontsource/arimo/latin-700.css';
+import '@fontsource/arimo/latin-400-italic.css';
+import '@fontsource/arimo/latin-700-italic.css';
+import '@fontsource/tinos/latin-400.css';
+import '@fontsource/tinos/latin-700.css';
+import '@fontsource/tinos/latin-400-italic.css';
+import '@fontsource/tinos/latin-700-italic.css';
+import '@fontsource/cousine/latin-400.css';
+import '@fontsource/cousine/latin-700.css';
+import '@fontsource/cousine/latin-400-italic.css';
+import '@fontsource/cousine/latin-700-italic.css';

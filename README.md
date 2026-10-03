@@ -78,13 +78,30 @@ Add multiple files through the system picker or drop area. Additional selections
 
 Formats are allowlisted by extension, then decoded by the real conversion engine; malformed or unsupported internal codecs produce an error. No promise of universal codec support. MP4/MOV output from audio adds a plain 1280×720 navy video track. Media conversions have a five-minute processing timeout. Browser memory and device speed may impose lower practical limits.
 
-Documents use readable text with a clean, simplified layout. Embedded images, exact styling and table structure are not retained. DOCX means modern Microsoft Word format; legacy DOC is unsupported. PDF input requires selectable text; no password removal. Use Tools → Image to text for OCR of image files. Standard Latin PDF output is searchable; other writing systems use browser-shaped page images and are not searchable. Image-to-PDF also creates an image-based page. Markdown is treated as plain text. Quality settings apply to lossy media and JPEG/WebP, not lossless PNG/WAV/FLAC.
+### Document appearance and editability
+
+![Document conversion controls](docs/document-layout-preview.jpg)
+
+| Conversion | What stays | What to expect |
+| --- | --- | --- |
+| **DOCX → PDF** | Supported font styling, colors, tables, embedded pictures, lists, margins, headers/footers and saved page breaks | Word pages are rendered locally into an image-based PDF. Text is not selectable. Browser rendering is not identical to Microsoft Word; unavailable fonts, fields, floating objects, complex tables and unusual layouts may differ. |
+| **PDF → DOCX · Keep appearance** | The visible page design, pictures, original page sizes and orientation, including scanned pages | Default mode: each PDF page becomes a full-page image in Word. Page text and table cells are not editable. |
+| **PDF → DOCX · Editable text** | Extracted text from selectable PDFs | Optional mode for editing; original design, tables and pictures are simplified. |
+| **PDF → PDF / DOCX → DOCX** | The entire original file | The download is an unchanged copy; no reconstruction or recompression. |
+| **Any document → TXT** | Plain text | TXT cannot store font styles, images, tables or page layout. Scanned PDFs need OCR first. |
+
+DOCX means modern Microsoft Word format; legacy DOC is unsupported. Password-protected PDFs cannot be converted to another format. Use Tools → Image to text for OCR of image files. TXT/Markdown-to-PDF retains the existing plain-text export: standard Latin text is searchable; other writing systems use page images. Markdown is treated as plain text. Quality settings apply to lossy media and JPEG/WebP, not lossless PNG/WAV/FLAC.
+
+DOCX rendering handles overflow between paragraphs, table rows and within long text paragraphs. A merged row or oversized drawing that cannot fit a page produces a clear error instead of silently clipping content. Exact Word pagination, automatic fields, repeated table headings and complex section rules are not guaranteed. Embedded fonts and locally available fonts are used where supported; embedding a document's fonts improves consistency. Bundled Carlito, Caladea, Arimo, Tinos and Cousine provide fallbacks for Calibri, Cambria, Arial, Times New Roman and Courier New when the originals are unavailable. These substitutes can still differ visually.
+
+Layout exports are limited to 200 pages and 150 MB of accumulated rendered page images. DOCX packages are limited to 100 MB expanded size and 5,000 entries; individual Word pages must fit the local renderer's 3,000-pixel page-size limit. PDF-to-DOCX requires page dimensions within Word's 22-inch limit. Large outputs may reach browser memory limits sooner.
 
 </details>
 
 ## 🔒 Privacy by design
 
 - No conversion API, backend upload endpoint, database, analytics, cookies, service worker, localStorage or IndexedDB.
+- DOCX rendering uses a temporary sandboxed frame. External document relationships and HTML chunks are excluded; document images and embedded fonts use data URLs. The frame blocks remote resources and is removed after conversion or cancellation.
 - File bytes are read with browser File APIs and processed in memory. Neither names nor contents are included in network requests.
 - Media uses a temporary FFmpeg WebAssembly worker and in-memory filesystem. The worker is terminated after success, failure or cancellation.
 - Output object URLs are revoked when replaced or cleared. Clear files removes input and output references. The browser controls garbage collection; this is not a secure RAM erasure guarantee.
@@ -121,7 +138,10 @@ Deploy the `dist` directory on a static host with WebAssembly and module-worker 
 | `src/Converter.jsx` | File queue, conversion controls, cancellation and downloads. |
 | `src/batch.js` | Batch validation and unique filenames for ZIP downloads. |
 | `src/catalog.js` | Advertised input/output formats and size limits. |
-| `src/convert.js` | Text extraction, document creation and image conversion. |
+| `src/convert.js` | Conversion routing, text extraction, plain-text exports and image conversion. |
+| `src/document-layout.js` | Styled Word rendering, page overflow handling and visual PDF-to-Word export. |
+| `src/pdf-document.js` | Shared PDF loading, page limits and cancellation cleanup. |
+| `src/fonts.js` | Same-origin fonts shared by document rendering and Font Studio. |
 | `src/media.js` | FFmpeg worker lifecycle and media encoder settings. |
 | `src/Tools.jsx` | The six-tool interface and Font Studio. |
 | `src/image-tools.js` | Canvas operations, image limits and image-document generation. |
@@ -132,6 +152,8 @@ Deploy the `dist` directory on a static host with WebAssembly and module-worker 
 The optional page-scoped WebMCP interface exposes supported options and output selection. It never returns filenames or file contents and never starts a conversion or download.
 
 ## 🧪 Verification
+
+For browser document checks, start the development server and open `/scripts/document-layout-test.html`. Click **Run document checks** to exercise styled DOCX pages, portrait/landscape sections, pixel-matched PDF page images in DOCX, long paragraphs/tables, unchanged same-format downloads, editable/plain-text fallbacks and cancellation cleanup. The test page is development-only and is not included in the production build.
 
 Run the included checks after installing dependencies and preparing assets:
 
@@ -148,7 +170,7 @@ npm run build
 - Production build completed successfully.
 - Browser: the actual interface generated PDF and DOCX from a UTF-8 text sample, and MP4 with a video preview from a WAV sample.
 - The packaged WebAssembly engine encoded MP3, WAV, FLAC, OGG, M4A, MP4 and MOV from a generated tone, and converted MP4 to WebM. Reproduce with `node scripts/smoke-media.mjs`.
-- These are representative samples, not a guarantee for all codecs or documents. Exact layout preservation, OCR of PDF documents, very large individual files and secure memory wiping are out of scope.
+- These are representative samples, not a guarantee for all codecs or documents. Pixel-identical Microsoft Word rendering, editable PDF layout reconstruction, OCR of PDF documents, very large individual files and secure memory wiping are out of scope.
 - This test browser did not expose the optional document-scoped WebMCP tools, so that integration could not be verified live.
 - `node scripts/test-batch.mjs`: exact 500 MB boundary, oversized/empty/unsupported selections, per-file limits and duplicate ZIP names.
 - `node scripts/test-ocr.mjs`: reads the included PNG fixture using bundled language data with cache disabled; recovers all three expected lines.
@@ -165,7 +187,7 @@ Local uses open-source libraries that run in the browser. It does not send selec
 | Role | Libraries |
 | --- | --- |
 | Interface & build | React, Vite, Lucide |
-| Documents | Mammoth, docx, jsPDF, PDF.js |
+| Documents | Mammoth, docx, jsPDF, PDF.js, docx-preview, html2canvas |
 | Audio & video | FFmpeg.wasm |
 | Text recognition | Tesseract.js |
 | Downloads, fonts & emojis | JSZip, Fontsource, Emojibase |

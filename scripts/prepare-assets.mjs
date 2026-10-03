@@ -20,5 +20,5 @@ await copyFile('node_modules/tesseract.js/dist/worker.min.js','public/ocr/worker
 const {readdir}=await import('node:fs/promises');
 for(const file of await readdir('node_modules/tesseract.js-core'))if(file.endsWith('.wasm.js')||file.endsWith('.wasm'))await copyFile(`node_modules/tesseract.js-core/${file}`,`public/ocr/core/${file}`);
 for(const lang of ['eng','hin'])await copyFile(`node_modules/@tesseract.js-data/${lang}/4.0.0_best_int/${lang}.traineddata.gz`,`public/ocr/lang/${lang}.traineddata.gz`);
-for(const name of ['tesseract.js','tesseract.js-core','emojibase-data','jszip'])for(const file of ['LICENSE','LICENSE.txt','LICENSE.md']){try{await copyFile(`node_modules/${name}/${file}`,`public/notices/${name}-${file}`);}catch{}}
+for(const name of ['tesseract.js','tesseract.js-core','emojibase-data','jszip','docx-preview','html2canvas'])for(const file of ['LICENSE','LICENSE.txt','LICENSE.md']){try{await copyFile(`node_modules/${name}/${file}`,`public/notices/${name}-${file}`);}catch{}}
 console.log('Same-origin OCR engine and English/Hindi language models prepared.');
