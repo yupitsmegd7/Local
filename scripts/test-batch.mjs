@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {validateBatch,BATCH_LIMIT,uniqueNames} from '../src/batch.js';
+const file=(name,size)=>({name,size});
+const five=Array.from({length:5},(_,i)=>file(`sound-${i}.wav`,100_000_000));
+assert.equal(validateBatch([],five,'audio').length,5);
+assert.throws(()=>validateBatch(five,[file('extra.wav',1)],'audio'),/exceeds 500 MB/);
+assert.equal(five.reduce((n,f)=>n+f.size,0),BATCH_LIMIT);
+assert.throws(()=>validateBatch([], [file('wrong.exe',10)],'images'),/not supported/);
+assert.throws(()=>validateBatch([], [file('empty.txt',0)],'documents'),/empty/);
+assert.throws(()=>validateBatch([], [file('huge.jpg',30_000_001)],'images'),/per-file/);
+assert.deepEqual(uniqueNames(['a.pdf','a.pdf','A.pdf','folder/a.pdf']),['a.pdf','a (2).pdf','A (3).pdf','folder_a.pdf']);
+console.log('Passed: 500 MB accepted, excess rejected, invalid/empty/oversize files rejected, ZIP filenames unique.');

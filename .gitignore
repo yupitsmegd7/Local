@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.sites-runtime/
+public/engine/
+public/pdf/
+*.log
+
+public/ocr/
